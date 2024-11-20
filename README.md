@@ -2,7 +2,19 @@
 
 ## Overview
 
-The `library_analyzer.py` script is designed to analyze Python libraries and extract detailed information about their elements, such as classes, methods, functions, properties, and more. The analysis results can be saved to a JSON file for further inspection.
+The script `library_analyzer.py` in the [JacquesGariepy/library-analyzer](https://github.com/JacquesGariepy/library-analyzer) repository is designed to analyze Python libraries and extract detailed information about their elements, such as classes, methods, functions, properties, and more. The analysis results can be saved to a JSON file for further inspection.
+
+### Capabilities of the Code:
+- **Analyze Python Libraries**: The script can analyze Python libraries and extract detailed information about various elements within the library.
+- **Element Types Identified**: It identifies and categorizes elements such as classes, methods, functions, properties, modules, variables, enums, constants, dataclasses, coroutines, generators, descriptors, exceptions, and protocols.
+- **Extract Type Information**: The script can safely evaluate and extract type information for various elements.
+- **Extract Signatures**: It can extract function/method signatures and other relevant details such as docstrings, parameter types, and return types.
+- **Class Analysis**: The script provides detailed information about classes, including base classes, methods, properties, and type hints.
+- **Dataclass and Enum Analysis**: It can analyze dataclasses and enums, extracting field types and enum values.
+- **Save Analysis Results**: The analysis results can be saved to a JSON file for further inspection and documentation.
+- **Error Handling**: The script includes error handling to capture and log errors encountered during the analysis process.
+
+This script is part of a larger ongoing project aimed at creating a comprehensive tool for analyzing and documenting Python libraries. The project aims to provide insights into the structure and content of libraries, aiding developers in understanding and utilizing various libraries efficiently.
 
 ## Classes
 
