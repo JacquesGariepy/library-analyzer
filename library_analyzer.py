@@ -70,9 +70,6 @@ class LibraryAnalyzer:
             'Dict': Dict,
             'Set': Set,
             'Optional': typing.Optional,
-            # Add other types specific to OpenAI
-            # 'OpenAI': type('OpenAI', (), {}),
-            # 'AsyncOpenAI': type('AsyncOpenAI', (), {}),
         }
 
     def safe_eval(self, type_str: str):
