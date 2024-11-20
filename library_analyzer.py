@@ -448,35 +448,25 @@ if __name__ == "__main__":
         library_name = sys.argv[1]
         library_dict = analyze_and_display(library_name)
         
-        # import openai
-
-        # analyzer = LibraryAnalyzer()
-
-        # # Import the Completions class
-        # completions_cls = getattr(openai, "Completions")
-
-        # # Analyze the Completions class
-        # class_info = analyzer.get_class_info(completions_cls)
-
-        # # Display the class information
-        # print(json.dumps(class_info, indent=2))
-
-        file_path = sys.argv[2]
-        data = parse_json_file(file_path)
-        if data:
-            print("Data loaded successfully.")
-            print(f"Data keys: {list(data.keys())}")
-            signatures = extract_function_signatures(data)
-            print(f"Extracted signatures: {signatures}")
-            for func_name, params in signatures.items():
-                print(f"Function: {func_name}")
-                for param_name, param_info in params.items():
-                    print(f"  Param: {param_name}")
-                    print(f"    Kind: {param_info['kind']}")
-                    print(f"    Default: {param_info['default']}")
-                    print(f"    Annotation: {param_info['annotation']}")
-        else:
-            print("No data found.")
+        if len(sys.argv) > 2:
+            file_path = sys.argv[2]
+            data = parse_json_file(file_path)
+            if data:
+                print("Data loaded successfully.")
+                print(f"Data keys: {list(data.keys())}")
+                signatures = extract_function_signatures(data)
+                print(f"Extracted signatures: {signatures}")
+                for func_name, params in signatures.items():
+                    print(f"Function: {func_name}")
+                    for param_name, param_info in params.items():
+                        print(f"  Param: {param_name}")
+                        print(f"    Kind: {param_info['kind']}")
+                        print(f"    Default: {param_info['default']}")
+                        print(f"    Annotation: {param_info['annotation']}")
+            else:
+                print("No data found.")
     else:
         print("Please provide a library name as argument")
         print("Example: python library_analyzer.py openai")
+        
+    # python simulator\library_analyzer.py mistralai C:\\mistralai_analysis_v1.2.3.json
