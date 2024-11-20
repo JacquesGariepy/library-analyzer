@@ -1,4 +1,3 @@
-
 ## Overview
 
 The script `library_analyzer.py` in the [JacquesGariepy/library-analyzer](https://github.com/JacquesGariepy/library-analyzer) repository is designed to analyze Python libraries and extract detailed information about their elements, such as classes, methods, functions, properties, and more. The analysis results can be saved to a JSON file for further inspection.
