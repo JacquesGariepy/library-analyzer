@@ -70,6 +70,9 @@ class LibraryAnalyzer:
             'Dict': Dict,
             'Set': Set,
             'Optional': typing.Optional,
+            # Add other types specific to OpenAI
+            # 'OpenAI': type('OpenAI', (), {}),
+            # 'AsyncOpenAI': type('AsyncOpenAI', (), {}),
         }
 
     def safe_eval(self, type_str: str):
@@ -341,7 +344,10 @@ def analyze_and_display(library_name: str, save_to_file: bool = True):
     analysis = analyzer.analyze_library(library_name)
     
     if save_to_file:
-        output_file = f"{library_name}_analysis.json"
+        output_dir = "metrics"
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        output_file = os.path.join(output_dir, f"{library_name}_analysis.json")
         analyzer.save_analysis(analysis, output_file)
     
     if 'error' in analysis:
@@ -450,23 +456,26 @@ if __name__ == "__main__":
         
         if len(sys.argv) > 2:
             file_path = sys.argv[2]
-            data = parse_json_file(file_path)
-            if data:
-                print("Data loaded successfully.")
-                print(f"Data keys: {list(data.keys())}")
-                signatures = extract_function_signatures(data)
-                print(f"Extracted signatures: {signatures}")
-                for func_name, params in signatures.items():
-                    print(f"Function: {func_name}")
-                    for param_name, param_info in params.items():
-                        print(f"  Param: {param_name}")
-                        print(f"    Kind: {param_info['kind']}")
-                        print(f"    Default: {param_info['default']}")
-                        print(f"    Annotation: {param_info['annotation']}")
-            else:
-                print("No data found.")
+        else:
+            file_path = os.path.join("metrics", f"{library_name}_analysis.json")
+        
+        data = parse_json_file(file_path)
+        if data:
+            print("Data loaded successfully.")
+            print(f"Data keys: {list(data.keys())}")
+            signatures = extract_function_signatures(data)
+            print(f"Extracted signatures: {signatures}")
+            for func_name, params in signatures.items():
+                print(f"Function: {func_name}")
+                for param_name, param_info in params.items():
+                    print(f"  Param: {param_name}")
+                    print(f"    Kind: {param_info['kind']}")
+                    print(f"    Default: {param_info['default']}")
+                    print(f"    Annotation: {param_info['annotation']}")
+        else:
+            print("No data found.")
     else:
         print("Please provide a library name as argument")
         print("Example: python library_analyzer.py openai")
         
-    # python simulator\library_analyzer.py mistralai C:\\mistralai_analysis_v1.2.3.json
+    # python simulator\library_analyzer.py mistralai C:\metrics\mistralai_analysis_v1.2.3.json
