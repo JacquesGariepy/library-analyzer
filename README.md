@@ -1,4 +1,3 @@
-![image](https://github.com/user-attachments/assets/c0629cc9-215e-4640-a322-fa9776e342d4)# Library Analyzer Documentation
 
 ## Overview
 
