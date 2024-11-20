@@ -1,4 +1,4 @@
-# Library Analyzer Documentation
+![image](https://github.com/user-attachments/assets/c0629cc9-215e-4640-a322-fa9776e342d4)# Library Analyzer Documentation
 
 ## Overview
 
@@ -57,6 +57,10 @@ To use the script, run it from the command line with the name of the library to 
 
 ```sh
 python library_analyzer.py <library_name>
+python library_analyzer.py <json>
+
+python library_analyzer.py mistralai
+python library_analyzer.py C:\metrics\mistralai_analysis_v1.2.3.json
 ```
 
 ### Example
