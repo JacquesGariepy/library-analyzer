@@ -28,48 +28,6 @@ python library_analyzer.py C:\metrics\mistralai_analysis_v1.2.3.json
 (json output)
 ![1732065708571](https://github.com/user-attachments/assets/f384f7e2-be33-4353-a813-191d162a9036)
 
-## Classes
-
-### `ElementType`
-
-An enumeration that defines various types of elements that can be found in a library, such as classes, methods, functions, properties, modules, variables, enums, constants, dataclasses, coroutines, generators, descriptors, exceptions, and protocols.
-
-
-
-### `LibraryAnalyzer`
-
-The main class responsible for analyzing a library. It provides methods to analyze individual elements, extract type information, and save the analysis results.
-
-#### Methods
-    Attributes:
-        explored (set): A set to keep track of explored elements to avoid redundant analysis.
-        errors (list): A list to store error messages encountered during analysis.
-        current_path (list): A list to maintain the current path of elements being analyzed.
-        library_elements (dict): A dictionary to store information about analyzed library elements.
-        type_namespace (dict): A dictionary to store type information for safe evaluation.
-    Methods:
-        __init__(): Initializes the LibraryAnalyzer instance and sets up the type environment.
-        _setup_type_environment(): Configures the environment for type management.
-        safe_eval(type_str: str): Safely evaluates a type string.
-        get_type_info(typ) -> str: Converts a type to a string representation safely.
-        get_signature_info(obj) -> Dict: Extracts signature information from a function/method.
-        get_class_info(obj) -> Dict: Extracts detailed information from a class.
-        analyze_element(obj, name: str, module_name: str) -> Dict: Analyzes an individual library element.
-        get_element_type(obj) -> ElementType: Determines the precise type of an element.
-        analyze_library(library_name: str) -> Dict: Performs a complete analysis of a library.
-        save_analysis(analysis: Dict, output_file: str): Saves the analysis to a JSON file.
-
-## Functions
-
-### `analyze_and_display(library_name: str, save_to_file: bool = True)`
-
-The main function to analyze a library and display the results. It creates an instance of `LibraryAnalyzer`, performs the analysis, and optionally saves the results to a file.
-
-### Example
-Here is an example of how to use the LibraryAnalyzer class to analyze a specific class from the openai library:
-
-## Error Handling
-The script includes error handling to capture and log errors that occur during the analysis process. Errors are stored in the errors attribute of the LibraryAnalyzer instance and included in the analysis results.
 
 ## Output
 The analysis results include metadata about the library, such as its name, version, file location, and documentation, as well as detailed information about each element in the library. The results can be saved to a JSON file for further inspection. The filename includes the library version and increments if the file already exists. Look for files like `openai_analysis_v1.0.json` or `openai_analysis_v1.0_1.json` for the analysis results of the openai library.
