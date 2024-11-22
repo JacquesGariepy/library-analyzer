@@ -76,6 +76,6 @@ The library_analyzer.py script is a powerful tool for analyzing Python libraries
 Let’s stay in touch here or on LinkedIn.
 [![LinkedIn Badge](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/jacquesgariepy)
 
-[![Reddit Badge](https://img.shields.io/badge/Discussion-reddit-red)](https://www.reddit.com/r/Python/comments/1gx69ce/light_resilience_with_the_service_failover_system/)
+[![Reddit Badge](https://img.shields.io/badge/Discussion-reddit-red)](https://www.reddit.com/r/Python/comments/1gx9j3t/library_analyzer_python_libraries_and_extract/)
 
 
