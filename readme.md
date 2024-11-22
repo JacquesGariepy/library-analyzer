@@ -32,6 +32,10 @@ python library_analyzer.py C:\metrics\mistralai_analysis_v1.2.3.json
 
 An enumeration that defines various types of elements that can be found in a library, such as classes, methods, functions, properties, modules, variables, enums, constants, dataclasses, coroutines, generators, descriptors, exceptions, and protocols.
 
+
+![1732065708571](https://github.com/user-attachments/assets/f384f7e2-be33-4353-a813-191d162a9036)
+
+
 ### `LibraryAnalyzer`
 
 The main class responsible for analyzing a library. It provides methods to analyze individual elements, extract type information, and save the analysis results.
