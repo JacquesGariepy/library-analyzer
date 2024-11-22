@@ -14,6 +14,18 @@ The script `library_analyzer.py` in the [JacquesGariepy/library-analyzer](https:
 
 This script is part of a larger ongoing project aimed at creating a comprehensive tool for analyzing and documenting Python libraries. The project aims to provide insights into the structure and content of libraries, aiding developers in understanding and utilizing various libraries efficiently.
 
+## Usage
+
+To use the script, run it from the command line with the name of the library to analyze:
+
+```sh
+python library_analyzer.py <library_name>
+python library_analyzer.py <json>
+
+python library_analyzer.py mistralai
+python library_analyzer.py C:\metrics\mistralai_analysis_v1.2.3.json
+```
+
 ## Classes
 
 ### `ElementType`
@@ -48,18 +60,6 @@ The main class responsible for analyzing a library. It provides methods to analy
 ### `analyze_and_display(library_name: str, save_to_file: bool = True)`
 
 The main function to analyze a library and display the results. It creates an instance of `LibraryAnalyzer`, performs the analysis, and optionally saves the results to a file.
-
-## Usage
-
-To use the script, run it from the command line with the name of the library to analyze:
-
-```sh
-python library_analyzer.py <library_name>
-python library_analyzer.py <json>
-
-python library_analyzer.py mistralai
-python library_analyzer.py C:\metrics\mistralai_analysis_v1.2.3.json
-```
 
 ### Example
 Here is an example of how to use the LibraryAnalyzer class to analyze a specific class from the openai library:
