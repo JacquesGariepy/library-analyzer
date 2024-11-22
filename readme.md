@@ -73,9 +73,8 @@ The analysis results include metadata about the library, such as its name, versi
 ## Conclusion
 The library_analyzer.py script is a powerful tool for analyzing Python libraries and extracting detailed information about their elements. It can be used to gain insights into the structure and contents of a library, making it easier to understand and work with.
 
-Let’s stay in touch here or on LinkedIn.
-[![LinkedIn Badge](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/jacquesgariepy)
-
 [![Reddit Badge](https://img.shields.io/badge/Discussion-reddit-red)](https://www.reddit.com/r/Python/comments/1gx9j3t/library_analyzer_python_libraries_and_extract/)
 
+Let’s stay in touch here or on LinkedIn.
+[![LinkedIn Badge](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/jacquesgariepy)
 
