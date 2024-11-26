@@ -11,7 +11,7 @@ The script `library_analyzer.py` in the [JacquesGariepy/library-analyzer](https:
 - **Dataclass and Enum Analysis**: It can analyze dataclasses and enums, extracting field types and enum values.
 - **Save Analysis Results**: The analysis results can be saved to a JSON file for further inspection and documentation.
 - **Error Handling**: The script includes error handling to capture and log errors encountered during the analysis process.
-- **Semantic Search**: The script includes semantic search functionality using Elasticsearch to index and search extracted text data from the analysis results.
+- **Semantic Search**: The script includes semantic search functionality using Whoosh and BERT to index and search extracted text data from the analysis results.
 
 This script is part of a larger ongoing project aimed at creating a comprehensive tool for analyzing and documenting Python libraries. The project aims to provide insights into the structure and content of libraries, aiding developers in understanding and utilizing various libraries efficiently.
 
@@ -20,11 +20,7 @@ This script is part of a larger ongoing project aimed at creating a comprehensiv
 To use the script, run it from the command line with the name of the library to analyze:
 
 ```sh
-python library_analyzer.py <library_name>
-python library_analyzer.py <json>
-
-python library_analyzer.py mistralai
-python library_analyzer.py C:\metrics\mistralai_analysis_v1.2.3.json
+python -m library_analyzer <library_name> [search_query]
 ```
 
 ## Using Docker
@@ -38,21 +34,23 @@ docker build -t library-analyzer .
 Then, run the container with the necessary arguments:
 
 ```sh
-docker run --rm -v $(pwd):/app library-analyzer python library_analyzer.py <library_name>
-docker run --rm -v $(pwd):/app library-analyzer python library_analyzer.py <json>
+docker run --rm -v $(pwd):/app library-analyzer <library_name> [search_query]
 ```
 
 ## Output
 The analysis results include metadata about the library, such as its name, version, file location, and documentation, as well as detailed information about each element in the library. The results can be saved to a JSON file for further inspection. The filename includes the library version and increments if the file already exists. Look for files like `openai_analysis_v1.0.json` or `openai_analysis_v1.0_1.json` for the analysis results of the openai library.
 
+(json output)
+![1732065708571](https://github.com/user-attachments/assets/f384f7e2-be33-4353-a813-191d162a9036)
+
 ## Semantic Search
 
-The script now includes semantic search functionality using Elasticsearch. This allows you to perform searches on the extracted text data from the analysis results, such as docstrings, function signatures, and class descriptions.
+The script now includes semantic search functionality using Whoosh and BERT. This allows you to perform searches on the extracted text data from the analysis results, such as docstrings, function signatures, and class descriptions.
 
 ### How to Use Semantic Search
 
 1. **Extract Text Data for Indexing**: The script extracts relevant text data from the analysis results, including docstrings, function signatures, and class descriptions.
-2. **Index the Extracted Data**: The extracted text data is indexed using Elasticsearch.
+2. **Index the Extracted Data**: The extracted text data is indexed using Whoosh and BERT.
 3. **Perform Searches**: You can perform searches on the indexed data using the search function in the `LibraryAnalyzer` class.
 
 ### Example
@@ -83,93 +81,6 @@ Here is an example `config.yaml` file:
 use_bert: true
 use_whoosh: true
 top_k: 5
-```
-
-### Loading Configuration
-
-The configuration can be loaded dynamically in the code as shown below:
-
-```python
-import yaml
-
-def load_config(file="config.yaml"):
-    with open(file, 'r') as f:
-        return yaml.safe_load(f)
-
-config = load_config()
-results = search_pipeline(query, use_bert=config["use_bert"], use_whoosh=config["use_whoosh"], top_k=config["top_k"])
-```
-
-This allows you to easily adjust the search preferences without modifying the code.
-
-## Use Case
-
-A new file `use_case.py` has been added to demonstrate a use case utilizing `library_analyzer.py` and implementing semantic search. This file includes code to analyze a library, extract text data, index it, and perform a semantic search using the configuration from `config.yaml`.
-
-### Running the Use Case without Docker
-
-To run the use case without Docker, execute the following command:
-
-```sh
-python use_case.py <library_name> <search_query>
-```
-
-### Running the Use Case with Docker
-
-To run the use case with Docker, first build the Docker image if you haven't already:
-
-```sh
-docker build -t library-analyzer .
-```
-
-Then, run the container with the necessary arguments:
-
-```sh
-docker run --rm -v "${PWD}:/app" library-analyzer mistralai "chat completion"
-```
-
-### Concrete Example
-
-To analyze the `openai` library and perform a search for "chat completion", you can use the following commands:
-
-#### Without Docker
-
-```sh
-python use_case.py openai "chat completion"
-```
-
-#### With Docker
-
-```sh
-docker run --rm -v "${PWD}:/app" library-analyzer mistralai "timeout configuration"
-```
-
-### Expected Output
-
-The use case will analyze a sample library (e.g., `mistralai`), extract text data, index it, and perform a semantic search. The search results will be printed to the console, showing the paths and text snippets that match the search query.
-```sh
-docker run --rm -v "${PWD}:/app" library-analyzer mistralai "timeout configuration"
-
-----
-Using device: cpu
-
-Search results for query 'timeout configuration':
-- Path: Classifiers.moderate, Text: Moderations
-
-:param inputs: Text to classify.
-:param model:
-:param retries: Override the default retry configuration for this method
-:param server_url: Override the default server URL for this method
-:param timeout_ms: Override the default request timeout configuration for this method in milliseconds
-- Path: Classifiers.moderate_async, Text: Moderations
-
-:param inputs: Text to classify.
-:param model:
-:param retries: Override the default retry configuration for this method
-:param server_url: Override the default server URL for this method
-:param timeout_ms: Override the default request timeout configuration for this method in milliseconds
-- Path: Files.delete, Text: Delete File
-....
 ```
 
 ## Conclusion

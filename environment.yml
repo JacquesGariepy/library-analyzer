@@ -2,14 +2,18 @@ name: library-analyzer
 channels:
   - defaults
   - conda-forge
+  - pytorch
 dependencies:
-  - python=3.8
+  - python=3.12
   - pip
+  - pytorch
+  - torchvision
+  - torchaudio
+  - faiss-cpu
   - pip:
-    - PyYAML
-    - whoosh
-    - sentence-transformers
-    - torch
-    - faiss-cpu
-    - numpy
-    - mistralai
+      - PyYAML
+      - whoosh
+      - sentence-transformers
+      - numpy
+      - mistralai
+      - openai

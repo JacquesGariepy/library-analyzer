@@ -9,6 +9,7 @@ from dataclasses import is_dataclass, fields
 from functools import partial
 import asyncio
 import typing
+import typing_extensions
 import warnings
 import contextlib
 import os
@@ -111,14 +112,28 @@ class LibraryAnalyzer:
             if typ == inspect.Signature.empty:
                 return 'Any'
             
+            # Handle special forms like Union, Optional, and Any
+            if isinstance(typ, typing._SpecialForm):
+                if typ is typing.Any:
+                    return 'Any'
+                elif typ is typing.Optional:
+                    args = typing.get_args(typ)
+                    args_str = ', '.join(self.get_type_info(arg) for arg in args)
+                    return f"Optional[{args_str}]"
+                elif typ is typing.Union:
+                    args = typing.get_args(typ)
+                    args_str = ', '.join(self.get_type_info(arg) for arg in args)
+                    return f"Union[{args_str}]"
+                else:
+                    return str(typ)
+            
             # Handle generic types
             origin = typing.get_origin(typ)
             if origin is not None:
                 args = typing.get_args(typ)
-                if args:
-                    args_str = ', '.join(self.get_type_info(arg) for arg in args)
-                    return f"{origin.__name__}[{args_str}]"
-                return origin.__name__
+                args_str = ', '.join(self.get_type_info(arg) for arg in args)
+                origin_name = getattr(origin, '__name__', str(origin))
+                return f"{origin_name}[{args_str}]"
             
             # Handle simple types
             if isinstance(typ, type):
@@ -128,10 +143,12 @@ class LibraryAnalyzer:
             if isinstance(typ, TypeVar):
                 return f"TypeVar('{typ.__name__}')"
             
+            # For all other types, fallback to string representation
             return str(typ)
         except Exception as e:
             self.errors.append(f"Error getting type info for {typ}: {str(e)}")
             return 'Any'
+
 
     def get_signature_info(self, obj) -> Dict:
         """Extract signature information from a function/method."""
@@ -554,36 +571,3 @@ def extract_function_signatures(data):
         extract_from_members(data['members'])
 
     return signatures
-                
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        library_name = sys.argv[1]
-        library_dict = analyze_and_display(library_name)
-        
-        if len(sys.argv) > 2:
-            file_path = sys.argv[2]
-        else:
-            file_path = os.path.join("metrics", f"{library_name}_analysis.json")
-        
-        data = parse_json_file(file_path)
-        if data:
-            print("Data loaded successfully.")
-            print(f"Data keys: {list(data.keys())}")
-            signatures = extract_function_signatures(data)
-            print(f"Extracted signatures: {signatures}")
-            for func_name, params in signatures.items():
-                print(f"Function: {func_name}")
-                for param_name, param_info in params.items():
-                    print(f"  Param: {param_name}")
-                    print(f"    Kind: {param_info['kind']}")
-                    print(f"    Default: {param_info['default']}")
-                    print(f"    Annotation: {param_info['annotation']}")
-        else:
-            print("No data found.")
-    else:
-        print("Please provide a library name as argument")
-        print("Example: python library_analyzer.py openai")
-        
-    # python simulator\library_analyzer.py mistralai C:\metrics\mistralai_analysis_v1.2.3.json
-    # conda run python use_case.py
-    # docker run library-analyzer

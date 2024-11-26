@@ -5,3 +5,4 @@ torch
 faiss-cpu
 numpy
 mistralai
+openai
