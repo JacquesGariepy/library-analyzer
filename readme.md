@@ -26,20 +26,24 @@ python library_analyzer.py <json>
 python library_analyzer.py mistralai
 python library_analyzer.py C:\metrics\mistralai_analysis_v1.2.3.json
 ```
-(json output)
-![1732065708571](https://github.com/user-attachments/assets/f384f7e2-be33-4353-a813-191d162a9036)
 
+## Using Docker
+
+You can also use Docker to run the script. First, build the Docker image:
+
+```sh
+docker build -t library-analyzer .
+```
+
+Then, run the container with the necessary arguments:
+
+```sh
+docker run --rm -v $(pwd):/app library-analyzer python library_analyzer.py <library_name>
+docker run --rm -v $(pwd):/app library-analyzer python library_analyzer.py <json>
+```
 
 ## Output
 The analysis results include metadata about the library, such as its name, version, file location, and documentation, as well as detailed information about each element in the library. The results can be saved to a JSON file for further inspection. The filename includes the library version and increments if the file already exists. Look for files like `openai_analysis_v1.0.json` or `openai_analysis_v1.0_1.json` for the analysis results of the openai library.
-
-## Conclusion
-The library_analyzer.py script is a powerful tool for analyzing Python libraries and extracting detailed information about their elements. It can be used to gain insights into the structure and contents of a library, making it easier to understand and work with.
-
-[![Reddit Badge](https://img.shields.io/badge/Discussion-reddit-red)](https://www.reddit.com/r/Python/comments/1gx9j3t/library_analyzer_python_libraries_and_extract/)
-
-Let’s stay in touch here or on LinkedIn.
-[![LinkedIn Badge](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/jacquesgariepy)
 
 ## Semantic Search
 
@@ -102,14 +106,76 @@ This allows you to easily adjust the search preferences without modifying the co
 
 A new file `use_case.py` has been added to demonstrate a use case utilizing `library_analyzer.py` and implementing semantic search. This file includes code to analyze a library, extract text data, index it, and perform a semantic search using the configuration from `config.yaml`.
 
-### Running the Use Case
+### Running the Use Case without Docker
 
-To run the use case, execute the following command:
+To run the use case without Docker, execute the following command:
 
 ```sh
-python use_case.py
+python use_case.py <library_name> <search_query>
+```
+
+### Running the Use Case with Docker
+
+To run the use case with Docker, first build the Docker image if you haven't already:
+
+```sh
+docker build -t library-analyzer .
+```
+
+Then, run the container with the necessary arguments:
+
+```sh
+docker run --rm -v "${PWD}:/app" library-analyzer mistralai "chat completion"
+```
+
+### Concrete Example
+
+To analyze the `openai` library and perform a search for "chat completion", you can use the following commands:
+
+#### Without Docker
+
+```sh
+python use_case.py openai "chat completion"
+```
+
+#### With Docker
+
+```sh
+docker run --rm -v "${PWD}:/app" library-analyzer mistralai "timeout configuration"
 ```
 
 ### Expected Output
 
 The use case will analyze a sample library (e.g., `mistralai`), extract text data, index it, and perform a semantic search. The search results will be printed to the console, showing the paths and text snippets that match the search query.
+```sh
+docker run --rm -v "${PWD}:/app" library-analyzer mistralai "timeout configuration"
+
+----
+Using device: cpu
+
+Search results for query 'timeout configuration':
+- Path: Classifiers.moderate, Text: Moderations
+
+:param inputs: Text to classify.
+:param model:
+:param retries: Override the default retry configuration for this method
+:param server_url: Override the default server URL for this method
+:param timeout_ms: Override the default request timeout configuration for this method in milliseconds
+- Path: Classifiers.moderate_async, Text: Moderations
+
+:param inputs: Text to classify.
+:param model:
+:param retries: Override the default retry configuration for this method
+:param server_url: Override the default server URL for this method
+:param timeout_ms: Override the default request timeout configuration for this method in milliseconds
+- Path: Files.delete, Text: Delete File
+....
+```
+
+## Conclusion
+The library_analyzer.py script is a powerful tool for analyzing Python libraries and extracting detailed information about their elements. It can be used to gain insights into the structure and contents of a library, making it easier to understand and work with.
+
+[![Reddit Badge](https://img.shields.io/badge/Discussion-reddit-red)](https://www.reddit.com/r/Python/comments/1gx9j3t/library_analyzer_python_libraries_and_extract/)
+
+Let’s stay in touch here or on LinkedIn.
+[![LinkedIn Badge](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/jacquesgariepy)

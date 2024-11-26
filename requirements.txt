@@ -1,0 +1,7 @@
+PyYAML
+whoosh
+sentence-transformers
+torch
+faiss-cpu
+numpy
+mistralai

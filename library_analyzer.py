@@ -77,6 +77,7 @@ class LibraryAnalyzer:
         self.ix = create_in("indexdir", schema)
         self.bert_model = self.load_bert_model()
         self.faiss_index = self.create_faiss_index()
+        self.documents = []
 
     def _setup_type_environment(self):
         """Configure the environment for type management."""
@@ -384,8 +385,8 @@ class LibraryAnalyzer:
         writer.commit()
 
         # Index data using BERT and FAISS
-        documents = [item['text'] for item in data]
-        embeddings = self.bert_model.encode(documents)
+        self.documents = [item['text'] for item in data]  # Store documents in the instance variable
+        embeddings = self.bert_model.encode(self.documents)
         self.faiss_index.add(embeddings)
 
     def search(self, query: str, use_bert: bool = True, use_whoosh: bool = True, top_k: int = 3) -> List[Dict]:
@@ -399,7 +400,7 @@ class LibraryAnalyzer:
                 whoosh_query = query_parser.parse(query)
                 whoosh_results = searcher.search(whoosh_query, limit=top_k)
                 results.extend([
-                    {"source": "Whoosh", "path": hit["path"], "score": hit.score}
+                    {"source": "Whoosh", "path": hit["path"], "text": hit["text"], "score": hit.score}
                     for hit in whoosh_results
                 ])
         
@@ -410,7 +411,8 @@ class LibraryAnalyzer:
             for i, idx in enumerate(indices[0]):
                 results.append({
                     "source": "BERT",
-                    "content": documents[idx],
+                    "path": "",  # BERT results do not have a path, so we leave it empty
+                    "text": self.documents[idx],  # Use the instance variable here
                     "score": -distances[0][i]  # Use negative distance as score
                 })
         
@@ -545,7 +547,7 @@ def extract_function_signatures(data):
         for name, info in members.items():
             if 'parameters' in info:
                 signatures[name] = info['parameters']
-            if 'members' in info):
+            if 'members' in info:
                 extract_from_members(info['members'])
 
     if 'members' in data:
@@ -583,3 +585,5 @@ if __name__ == "__main__":
         print("Example: python library_analyzer.py openai")
         
     # python simulator\library_analyzer.py mistralai C:\metrics\mistralai_analysis_v1.2.3.json
+    # conda run python use_case.py
+    # docker run library-analyzer
