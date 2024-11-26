@@ -1,0 +1,3 @@
+use_bert: true
+use_whoosh: true
+top_k: 5

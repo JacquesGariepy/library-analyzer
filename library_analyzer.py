@@ -12,6 +12,15 @@ import typing
 import warnings
 import contextlib
 import os
+from whoosh.index import create_in
+from whoosh.fields import Schema, TEXT, ID
+from whoosh.qparser import QueryParser
+from whoosh import index
+from sentence_transformers import SentenceTransformer
+import torch
+import faiss
+import numpy as np
+import yaml
 
 class ElementType(Enum):
     CLASS = "class"
@@ -38,6 +47,9 @@ class LibraryAnalyzer:
         current_path (list): A list to maintain the current path of elements being analyzed.
         library_elements (dict): A dictionary to store information about analyzed library elements.
         type_namespace (dict): A dictionary to store type information for safe evaluation.
+        ix (index.Index): An instance of the Whoosh index.
+        bert_model (SentenceTransformer): An instance of the BERT model.
+        faiss_index (faiss.Index): An instance of the FAISS index.
     Methods:
         __init__(): Initializes the LibraryAnalyzer instance and sets up the type environment.
         _setup_type_environment(): Configures the environment for type management.
@@ -49,6 +61,9 @@ class LibraryAnalyzer:
         get_element_type(obj) -> ElementType: Determines the precise type of an element.
         analyze_library(library_name: str) -> Dict: Performs a complete analysis of a library.
         save_analysis(analysis: Dict, output_file: str): Saves the analysis to a JSON file.
+        extract_text_data(analysis: Dict) -> List[Dict]: Extracts relevant text data from the analysis results.
+        index_data(data: List[Dict]): Indexes the extracted data using Whoosh and BERT.
+        search(query: str, use_bert: bool = True, use_whoosh: bool = True, top_k: int = 3) -> List[Dict]: Searches the indexed data using Whoosh and BERT.
     """
     def __init__(self):
         self.explored = set()
@@ -56,6 +71,12 @@ class LibraryAnalyzer:
         self.current_path = []
         self.library_elements = {}
         self._setup_type_environment()
+        schema = Schema(path=ID(stored=True), text=TEXT(stored=True))
+        if not os.path.exists("indexdir"):
+            os.mkdir("indexdir")
+        self.ix = create_in("indexdir", schema)
+        self.bert_model = self.load_bert_model()
+        self.faiss_index = self.create_faiss_index()
 
     def _setup_type_environment(self):
         """Configure the environment for type management."""
@@ -336,6 +357,78 @@ class LibraryAnalyzer:
         except Exception as e:
             print(f"Error saving analysis: {str(e)}")
 
+    def extract_text_data(self, analysis: Dict) -> List[Dict]:
+        """Extract relevant text data from the analysis results."""
+        text_data = []
+
+        def extract_from_element(element, path=""):
+            if isinstance(element, dict):
+                if 'docstring' in element and element['docstring']:
+                    text_data.append({
+                        'path': path,
+                        'text': element['docstring']
+                    })
+                if 'members' in element:
+                    for name, member in element['members'].items():
+                        extract_from_element(member, f"{path}.{name}" if path else name)
+
+        extract_from_element(analysis)
+        return text_data
+
+    def index_data(self, data: List[Dict]):
+        """Index the extracted data using Whoosh and BERT."""
+        # Index data using Whoosh
+        writer = self.ix.writer()
+        for item in data:
+            writer.add_document(path=item['path'], text=item['text'])
+        writer.commit()
+
+        # Index data using BERT and FAISS
+        documents = [item['text'] for item in data]
+        embeddings = self.bert_model.encode(documents)
+        self.faiss_index.add(embeddings)
+
+    def search(self, query: str, use_bert: bool = True, use_whoosh: bool = True, top_k: int = 3) -> List[Dict]:
+        """Search the indexed data using Whoosh and BERT."""
+        results = []
+        
+        # Whoosh search
+        if use_whoosh:
+            with self.ix.searcher() as searcher:
+                query_parser = QueryParser("text", self.ix.schema)
+                whoosh_query = query_parser.parse(query)
+                whoosh_results = searcher.search(whoosh_query, limit=top_k)
+                results.extend([
+                    {"source": "Whoosh", "path": hit["path"], "score": hit.score}
+                    for hit in whoosh_results
+                ])
+        
+        # BERT search
+        if use_bert:
+            query_embedding = self.bert_model.encode([query])
+            distances, indices = self.faiss_index.search(query_embedding, top_k)
+            for i, idx in enumerate(indices[0]):
+                results.append({
+                    "source": "BERT",
+                    "content": documents[idx],
+                    "score": -distances[0][i]  # Use negative distance as score
+                })
+        
+        # Combine and sort results
+        results = sorted(results, key=lambda x: x["score"], reverse=True)
+        return results
+
+    def load_bert_model(self):
+        """Load the BERT model with GPU detection."""
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"Using device: {device}")
+        return SentenceTransformer('paraphrase-MiniLM-L6-v2', device=device)
+
+    def create_faiss_index(self):
+        """Create a FAISS index."""
+        dimension = 384  # Dimension of the MiniLM embeddings
+        return faiss.IndexFlatL2(dimension)
+
 def analyze_and_display(library_name: str, save_to_file: bool = True):
     """Main function to analyze and display the results."""
     analyzer = LibraryAnalyzer()
@@ -379,6 +472,17 @@ def analyze_and_display(library_name: str, save_to_file: bool = True):
         for element_type, count in element_counts.items():
             if count > 0:
                 print(f"- {element_type}: {count}")
+
+    # Extract text data for indexing
+    text_data = analyzer.extract_text_data(analysis)
+    # Index the extracted data
+    analyzer.index_data(text_data)
+    # Perform a sample search
+    search_query = "example search query"
+    search_results = analyzer.search(search_query)
+    print(f"\nSearch results for query '{search_query}':")
+    for result in search_results:
+        print(f"- Path: {result['path']}, Text: {result['text']}")
 
     return analysis
 
@@ -441,7 +545,7 @@ def extract_function_signatures(data):
         for name, info in members.items():
             if 'parameters' in info:
                 signatures[name] = info['parameters']
-            if 'members' in info:
+            if 'members' in info):
                 extract_from_members(info['members'])
 
     if 'members' in data:
