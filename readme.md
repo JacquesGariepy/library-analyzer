@@ -97,3 +97,19 @@ results = search_pipeline(query, use_bert=config["use_bert"], use_whoosh=config[
 ```
 
 This allows you to easily adjust the search preferences without modifying the code.
+
+## Use Case
+
+A new file `use_case.py` has been added to demonstrate a use case utilizing `library_analyzer.py` and implementing semantic search. This file includes code to analyze a library, extract text data, index it, and perform a semantic search using the configuration from `config.yaml`.
+
+### Running the Use Case
+
+To run the use case, execute the following command:
+
+```sh
+python use_case.py
+```
+
+### Expected Output
+
+The use case will analyze a sample library (e.g., `mistralai`), extract text data, index it, and perform a semantic search. The search results will be printed to the console, showing the paths and text snippets that match the search query.
