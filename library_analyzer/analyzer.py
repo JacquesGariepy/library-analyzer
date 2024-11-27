@@ -55,12 +55,21 @@ class LibraryAnalyzer:
         self.bert_model = self.load_bert_model()
         self.faiss_index = self.create_faiss_index()
         self.documents = []
+        self.load_indexed_data()
 
     def _setup_type_environment(self):
         """Configure the environment for type management."""
         # Add common types to the global namespace
         self.type_namespace = {
+            'ClassVar': ClassVar,
+            'TypeVar': TypeVar,
+            'Generic': Generic,
             'Any': Any,
+            'Union': Union,
+            'List': List,
+            'Dict': Dict,
+            'Set': Set,
+            'Optional': typing.Optional
         }
 
     def safe_eval(self, type_str: str):
@@ -118,6 +127,9 @@ class LibraryAnalyzer:
         """Extract signature information from a function/method."""
         try:
             if inspect.isfunction(obj) or inspect.ismethod(obj):
+                # Skip built-in methods
+                if obj.__name__ in dir(dict):
+                    return {}
                 sig = inspect.signature(obj)
                 return {
                     'parameters': {
@@ -254,6 +266,20 @@ class LibraryAnalyzer:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 module = importlib.import_module(library_name)
+
+            # Get the current version of the library
+            current_version = getattr(module, '__version__', 'Unknown')
+            
+            # Check if a previous analysis exists
+            output_file = f"metrics/{library_name}_analysis.json"
+            if os.path.exists(output_file):
+                with open(output_file, 'r', encoding='utf-8') as f:
+                    previous_analysis = json.load(f)
+                    previous_version = previous_analysis.get('metadata', {}).get('version', 'Unknown')
+                    if previous_version == current_version:
+                        renew = input(f"The library '{library_name}' version '{current_version}' has already been analyzed. Do you want to renew the analysis? (yes/no): ")
+                        if renew.lower() != 'yes':
+                            return previous_analysis
             
             # Reset state
             self.explored = set()
@@ -267,7 +293,7 @@ class LibraryAnalyzer:
             # Add metadata information
             library_info['metadata'] = {
                 'name': library_name,
-                'version': getattr(module, '__version__', 'Unknown'),
+                'version': current_version,
                 'file': getattr(module, '__file__', 'Unknown'),
                 'doc': inspect.getdoc(module),
                 'analysis_errors': self.errors
@@ -333,9 +359,11 @@ class LibraryAnalyzer:
         writer.commit()
 
         # Index data using BERT and FAISS
-        self.documents = [item['text'] for item in data]  # Store documents in the instance variable
-        embeddings = self.bert_model.encode(self.documents)
-        self.faiss_index.add(embeddings)
+        new_documents = [item['text'] for item in data]
+        new_embeddings = self.bert_model.encode(new_documents)
+        self.documents.extend(new_documents)
+        self.faiss_index.add(new_embeddings)
+        self.save_indexed_data()
 
     def search(self, query: str, use_bert: bool = True, use_whoosh: bool = True, top_k: int = 3) -> List[Dict]:
         """Search the indexed data using Whoosh and BERT."""
@@ -379,3 +407,30 @@ class LibraryAnalyzer:
         """Create a FAISS index."""
         dimension = 384  # Dimension of the MiniLM embeddings
         return faiss.IndexFlatL2(dimension)
+
+    def load_indexed_data(self):
+        """Load indexed data from a file."""
+        try:
+            if os.path.exists("indexed_data.json"):
+                with open("indexed_data.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    self.documents = data["documents"]
+                    embeddings = np.array(data["embeddings"])
+                    self.faiss_index.add(embeddings)
+                    print("Indexed data loaded successfully.")
+        except Exception as e:
+            print(f"Error loading indexed data: {str(e)}")
+
+    def save_indexed_data(self):
+        """Save indexed data to a file."""
+        try:
+            embeddings = self.faiss_index.reconstruct_n(0, self.faiss_index.ntotal)
+            data = {
+                "documents": self.documents,
+                "embeddings": embeddings.tolist()
+            }
+            with open("indexed_data.json", "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            print("Indexed data saved successfully.")
+        except Exception as e:
+            print(f"Error saving indexed data: {str(e)}")
