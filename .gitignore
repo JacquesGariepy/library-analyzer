@@ -6,4 +6,6 @@ metrics/
 library_analyzer/
 indexed_data.json
 .github/
+readme.md
+application.log
 

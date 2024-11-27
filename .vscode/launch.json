@@ -3,7 +3,7 @@
     "configurations": [
         {
             "name": "Python: Library Analyzer",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "library_analyzer",
             "args": [

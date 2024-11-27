@@ -1,8 +1,14 @@
 import unittest
+import sys
+import os
+
+# Ajouter le répertoire parent au PYTHONPATH
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from unittest.mock import MagicMock
-from library_analyzer import perform_search, LibraryAnalyzer
 from library_analyzer.analyzer import LibraryAnalyzer
 from library_analyzer.utils import load_config
+from library_analyzer.search import perform_search  # Assurez-vous que perform_search est dans search.py
 
 class TestLibraryAnalyzer(unittest.TestCase):
     def setUp(self):

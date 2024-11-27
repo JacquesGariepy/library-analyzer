@@ -369,21 +369,27 @@ class LibraryAnalyzer:
         extract_from_element(analysis)
         return text_data
 
-    def index_data(self, data: List[Dict]):
-        """Index the extracted data using Whoosh and BERT."""
-        # Index data using Whoosh
+    def index_data(self, text_data):
+        """
+        Index the provided text data using FAISS.
+
+        Args:
+            text_data (list of str): List of text data to be indexed.
+        """
         writer = self.ix.writer()
-        for item in data:
+        for item in text_data:
             logging.info(f"Indexing document: {item['path']} - {item['text'][:RESULT_TEXT_LENGTH]}...")
-            writer.add_document(path=item['path'], text=item['text'])
-        writer.commit()
 
         # Index data using BERT and FAISS
-        new_documents = [item['text'] for item in data]
+        new_documents = [item['text'] for item in text_data]
         new_embeddings = self.bert_model.encode(new_documents)
+        
+        # Vérifier si new_embeddings est vide avant de vérifier sa dimension
+        if new_embeddings.size > 0 and new_embeddings.shape[1] == self.faiss_index.d:
+            self.faiss_index.add(new_embeddings)
+        else:
+            raise ValueError("Dimension des embeddings incompatible avec l'index FAISS.")
         self.documents.extend(new_documents)
-        self.faiss_index.add(new_embeddings)
-        self.save_indexed_data()
 
     def search(self, query: str, use_bert: bool = True, use_whoosh: bool = True, top_k: int = 3) -> List[Dict]:
         """Search the indexed data using Whoosh and BERT."""

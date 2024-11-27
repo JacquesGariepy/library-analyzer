@@ -13,6 +13,17 @@ The script `library_analyzer.py` in the [JacquesGariepy/library-analyzer](https:
 - **Error Handling**: The script includes error handling to capture and log errors encountered during the analysis process.
 - **Semantic Search**: The script includes semantic search functionality using Whoosh and BERT to index and search extracted text data from the analysis results.
 
+### Tools and Technologies Used:
+- **Python**: The primary programming language used for the script.
+- **Whoosh**: A fast, featureful full-text indexing and searching library implemented in pure Python.
+- **BERT (Bidirectional Encoder Representations from Transformers)**: A transformer-based machine learning technique for natural language processing pre-training.
+- paraphrase-MiniLM-L6-v2: A pre-trained model for paraphrase identification.
+- **FAISS (Facebook AI Similarity Search)**: A library for efficient similarity search and clustering of dense vectors.
+- **Sentence Transformers**: A Python framework for state-of-the-art sentence, text, and image embeddings.
+- **PyYAML**: A YAML parser and emitter for Python.
+- **Unittest**: Python's built-in module for testing code.
+- **Docker**: A platform for developing, shipping, and running applications in containers.
+
 This script is part of a larger ongoing project aimed at creating a comprehensive tool for analyzing and documenting Python libraries. The project aims to provide insights into the structure and content of libraries, aiding developers in understanding and utilizing various libraries efficiently.
 
 ## Usage
@@ -35,6 +46,14 @@ Then, run the container with the necessary arguments:
 
 ```sh
 docker run --rm -v $(pwd):/app library-analyzer <library_name> [search_query]
+```
+
+## Testing
+
+For run the tests, you can use the following command:
+
+```sh
+python -m unittest discover -s tests
 ```
 
 ## Output
