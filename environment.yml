@@ -17,3 +17,8 @@ dependencies:
       - numpy
       - mistralai
       - openai
+      - anthropic
+      - anthropic[vertex]
+      - google-generativeai
+      - litellm
+

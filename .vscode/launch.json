@@ -21,7 +21,7 @@
             "id": "libraryName",
             "type": "pickString",
             "description": "Sélectionnez ou entrez un nom de bibliothèque",
-            "options": ["openai", "mistralai", "requests", "numpy", "pandas", "Custom"],
+            "options": ["openai", "mistralai", "anthropic", "google.generativeai", "litellm", "requests", "numpy", "pandas", "Custom"],
             "default": "openai"
         },
         {
