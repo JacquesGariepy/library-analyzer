@@ -1,0 +1,45 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Library Analyzer",
+            "type": "python",
+            "request": "launch",
+            "module": "library_analyzer",
+            "args": [
+                "${input:libraryName}",
+                "${input:searchQuery}"
+            ],
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "libraryName",
+            "type": "pickString",
+            "description": "Sélectionnez ou entrez un nom de bibliothèque",
+            "options": ["openai", "mistralai", "requests", "numpy", "pandas", "Custom"],
+            "default": "openai"
+        },
+        {
+            "id": "searchQuery",
+            "type": "pickString",
+            "description": "Sélectionnez ou entrez une requête de recherche",
+            "options": ["example search query", "get", "post", "dataframe manipulation", "Custom"],
+            "default": "example search query"
+        },
+        {
+            "id": "libraryNameCustom",
+            "type": "promptString",
+            "description": "Entrez un nom de bibliothèque personnalisé"
+        },
+        {
+            "id": "searchQueryCustom",
+            "type": "promptString",
+            "description": "Entrez une requête de recherche personnalisée"
+        }
+    ]
+}

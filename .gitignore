@@ -2,3 +2,5 @@ __pycache__/
 indexdir/
 metrics/
 *.old
+.vs/library_analyzer/
+library_analyzer/

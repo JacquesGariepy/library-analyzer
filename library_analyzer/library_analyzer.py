@@ -22,6 +22,7 @@ import torch
 import faiss
 import numpy as np
 import yaml
+from datetime import datetime
 
 class ElementType(Enum):
     CLASS = "class"
@@ -149,6 +150,18 @@ class LibraryAnalyzer:
             self.errors.append(f"Error getting type info for {typ}: {str(e)}")
             return 'Any'
 
+    def discover_api_endpoints(self, library_name: str) -> List[str]:
+       """Discover API endpoints provided by the library."""
+       try:
+           module = importlib.import_module(library_name)
+           endpoints = []
+           for name, obj in inspect.getmembers(module):
+               if hasattr(obj, 'route'):
+                   endpoints.append(obj.route)
+           return endpoints
+       except Exception as e:
+           self.errors.append(f"Error discovering API endpoints for {library_name}: {str(e)}")
+           return []
 
     def get_signature_info(self, obj) -> Dict:
         """Extract signature information from a function/method."""
@@ -339,6 +352,14 @@ class LibraryAnalyzer:
             # Analyze the main module
             library_info = self.analyze_element(module, library_name, library_name)
             
+            # Discover API endpoints
+            api_endpoints = self.discover_api_endpoints(library_name)
+            library_info['api_endpoints'] = api_endpoints
+            
+            # Discover URLs
+            urls = self.find_urls(library_name)
+            library_info['urls'] = urls
+            
             # Add metadata information
             library_info['metadata'] = {
                 'name': library_name,
@@ -358,6 +379,12 @@ class LibraryAnalyzer:
 
     def save_analysis(self, analysis: Dict, output_file: str):
         """Save the analysis to a JSON file."""
+        def default_serializer(obj):
+            """Handle non-serializable objects."""
+            if isinstance(obj, (datetime,)):
+                return obj.isoformat()
+            return str(obj)
+        
         try:
             base_name, ext = os.path.splitext(output_file)
             version = analysis.get('metadata', {}).get('version', 'Unknown')
@@ -370,7 +397,7 @@ class LibraryAnalyzer:
                 counter += 1
 
             with open(output_file, 'w', encoding='utf-8') as f:
-                json.dump(analysis, f, indent=2, ensure_ascii=False)
+                json.dump(analysis, f, indent=2, ensure_ascii=False, default=default_serializer)
             print(f"Analysis saved to {output_file}")
         except Exception as e:
             print(f"Error saving analysis: {str(e)}")
@@ -435,6 +462,17 @@ class LibraryAnalyzer:
         
         # Combine and sort results
         results = sorted(results, key=lambda x: x["score"], reverse=True)
+        
+        # Search API endpoints
+        api_endpoints = self.discover_api_endpoints(query)
+        for endpoint in api_endpoints:
+            results.append({
+                "source": "API Endpoint",
+                "path": endpoint,
+                "text": f"API Endpoint: {endpoint}",
+                "score": 1.0  # Assign a high score to API endpoints
+            })
+        
         return results
 
     def load_bert_model(self):
@@ -447,6 +485,45 @@ class LibraryAnalyzer:
         """Create a FAISS index."""
         dimension = 384  # Dimension of the MiniLM embeddings
         return faiss.IndexFlatL2(dimension)
+
+    def find_urls(self, library_name: str) -> List[str]:
+        """Find URLs in the library."""
+        urls = []
+        try:
+            module = importlib.import_module(library_name)
+            visited = set()
+            self._find_urls_in_object(module, urls, visited)
+        except Exception as e:
+            self.errors.append(f"Error finding URLs in {library_name}: {str(e)}")
+        return urls
+
+    def _find_urls_in_object(self, obj, urls: List[str], visited: Set[int]):
+        """Recursively find URLs in an object."""
+        obj_id = id(obj)
+        if obj_id in visited:
+            return
+        visited.add(obj_id)
+
+        if isinstance(obj, str) and obj.startswith("http"):
+            urls.append(obj)
+        elif isinstance(obj, (list, tuple, set)):
+            for item in obj:
+                self._find_urls_in_object(item, urls, visited)
+        elif inspect.ismodule(obj) or inspect.isclass(obj):
+            try:
+                source = inspect.getsource(obj)
+                urls.extend(self.extract_urls_from_source(source))
+            except Exception:
+                pass
+            for name, member in inspect.getmembers(obj):
+                if not name.startswith('_'):
+                    self._find_urls_in_object(member, urls, visited)
+
+    def extract_urls_from_source(self, source: str) -> List[str]:
+        """Extract URLs from the source code."""
+        import re
+        url_pattern = re.compile(r'https?://\S+')
+        return url_pattern.findall(source)
 
 def analyze_and_display(library_name: str, save_to_file: bool = True):
     """Main function to analyze and display the results."""
