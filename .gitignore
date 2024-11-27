@@ -4,3 +4,4 @@ metrics/
 *.old
 .vs/library_analyzer/
 library_analyzer/
+indexed_data.json
