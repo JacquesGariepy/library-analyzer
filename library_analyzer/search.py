@@ -1,7 +1,13 @@
 import importlib
 import inspect
 import re
-from typing import List, Set
+import logging
+from typing import List, Set, Dict
+from .logging_config import setup_logging
+
+# Configurer le logging
+setup_logging()
+logger = logging.getLogger(__name__)
 
 def discover_api_endpoints(library_name: str) -> List[str]:
     """Discover API endpoints provided by the library."""
@@ -13,6 +19,7 @@ def discover_api_endpoints(library_name: str) -> List[str]:
                 endpoints.append(obj.route)
         return endpoints
     except Exception as e:
+        logger.error(f"Error discovering API endpoints: {str(e)}")
         return []
 
 def find_urls(library_name: str) -> List[str]:
@@ -23,6 +30,7 @@ def find_urls(library_name: str) -> List[str]:
         visited = set()
         _find_urls_in_object(module, urls, visited)
     except Exception as e:
+        logger.error(f"Error finding URLs: {str(e)}")
         pass
     return urls
 
@@ -52,3 +60,21 @@ def extract_urls_from_source(source: str) -> List[str]:
     """Extract URLs from the source code."""
     url_pattern = re.compile(r'https?://\S+')
     return url_pattern.findall(source)
+
+def perform_search(analyzer, analysis: Dict, search_query: str) -> List[str]:
+    """
+    Perform a search on the analyzed data.
+
+    Args:
+        analyzer (LibraryAnalyzer): The analyzer instance.
+        analysis (dict): The analysis results.
+        search_query (str): The search query.
+
+    Returns:
+        list: The search results.
+    """
+    results = []
+    for item in analysis['data']:
+        if search_query.lower() in item['text'].lower():
+            results.append(item['text'])
+    return results

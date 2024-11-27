@@ -1,19 +1,34 @@
-import os
-import json
-import warnings
-import importlib
-import inspect
 import asyncio
 import contextlib
+import importlib
+import inspect
+import json
+import os
+import warnings
 from datetime import datetime
-from typing import Any, Dict, List
-from whoosh.index import create_in
-from whoosh.fields import Schema, TEXT, ID
-from whoosh.qparser import QueryParser
-from sentence_transformers import SentenceTransformer
-import torch
+from enum import Enum
+from typing import Any, ClassVar, Dict, Generic, List, Set, TypeVar, Union, get_type_hints
+import typing
 import faiss
 import numpy as np
+import torch
+from dataclasses import fields, is_dataclass
+from sentence_transformers import SentenceTransformer
+from whoosh.fields import ID, TEXT, Schema
+from whoosh.index import create_in
+from whoosh.qparser import QueryParser
+import logging
+import yaml
+from .logging_config import setup_logging
+
+# Configurer le logging
+setup_logging()
+
+# Charger la configuration
+with open("config.yaml", "r") as config_file:
+    config = yaml.safe_load(config_file)
+RESULT_TEXT_LENGTH = config.get("RESULT_TEXT_LENGTH", 200)
+
 from .element import ElementType, get_element_type
 
 class LibraryAnalyzer:
@@ -121,6 +136,7 @@ class LibraryAnalyzer:
             return str(typ)
         except Exception as e:
             self.errors.append(f"Error getting type info for {typ}: {str(e)}")
+            logging.error(f"Error getting type info for {typ}: {str(e)}")
             return 'Any'
 
     def get_signature_info(self, obj) -> Dict:
@@ -147,6 +163,7 @@ class LibraryAnalyzer:
                 }
         except Exception as e:
             self.errors.append(f"Error getting signature for {obj}: {str(e)}")
+            logging.error(f"Error getting signature for {obj}: {str(e)}")
         return {}
 
     def get_class_info(self, obj) -> Dict:
@@ -199,6 +216,7 @@ class LibraryAnalyzer:
                 return info
         except Exception as e:
             self.errors.append(f"Error getting class info for {obj}: {str(e)}")
+            logging.error(f"Error getting class info for {obj}: {str(e)}")
             return {}
 
     def analyze_element(self, obj, name: str, module_name: str) -> Dict:
@@ -257,6 +275,7 @@ class LibraryAnalyzer:
             return element_info
         except Exception as e:
             self.errors.append(f"Error analyzing element {name}: {str(e)}")
+            logging.error(f"Error analyzing element {name}: {str(e)}")
             return {}
 
     def analyze_library(self, library_name: str) -> Dict:
@@ -328,9 +347,9 @@ class LibraryAnalyzer:
 
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(analysis, f, indent=2, ensure_ascii=False, default=default_serializer)
-            print(f"Analysis saved to {output_file}")
+            logging.info(f"Analysis saved to {output_file}")
         except Exception as e:
-            print(f"Error saving analysis: {str(e)}")
+            logging.error(f"Error saving analysis: {str(e)}")
 
     def extract_text_data(self, analysis: Dict) -> List[Dict]:
         """Extract relevant text data from the analysis results."""
@@ -355,6 +374,7 @@ class LibraryAnalyzer:
         # Index data using Whoosh
         writer = self.ix.writer()
         for item in data:
+            logging.info(f"Indexing document: {item['path']} - {item['text'][:RESULT_TEXT_LENGTH]}...")
             writer.add_document(path=item['path'], text=item['text'])
         writer.commit()
 
@@ -368,6 +388,7 @@ class LibraryAnalyzer:
     def search(self, query: str, use_bert: bool = True, use_whoosh: bool = True, top_k: int = 3) -> List[Dict]:
         """Search the indexed data using Whoosh and BERT."""
         results = []
+        logging.info(f"Starting search for query: {query}")
         
         # Whoosh search
         if use_whoosh:
@@ -375,11 +396,15 @@ class LibraryAnalyzer:
                 query_parser = QueryParser("text", self.ix.schema)
                 whoosh_query = query_parser.parse(query)
                 whoosh_results = searcher.search(whoosh_query, limit=top_k)
-                results.extend([
-                    {"source": "Whoosh", "path": hit["path"], "text": hit["text"], "score": hit.score}
-                    for hit in whoosh_results
-                ])
-        
+                for hit in whoosh_results:
+                    results.append({
+                        "source": "Whoosh",
+                        "path": hit["path"],
+                        "text": hit["text"],
+                        "score": hit.score
+                    })
+                logging.info(f"Whoosh search results: {whoosh_results}")
+
         # BERT search
         if use_bert:
             query_embedding = self.bert_model.encode([query])
@@ -387,20 +412,49 @@ class LibraryAnalyzer:
             for i, idx in enumerate(indices[0]):
                 results.append({
                     "source": "BERT",
-                    "path": "",  # BERT results do not have a path, so we leave it empty
-                    "text": self.documents[idx],  # Use the instance variable here
-                    "score": -distances[0][i]  # Use negative distance as score
+                    "path": "",
+                    "text": self.documents[idx],
+                    "score": distances[0][i]
                 })
-        
+            logging.info(f"BERT search results: {results[-top_k:]}")
+
         # Combine and sort results
         results = sorted(results, key=lambda x: x["score"], reverse=True)
         
-        return results
+        # Log the final results
+        logging.info(f"Final combined search results: {results}")
+        for result in results:
+            logging.info(f"Source: {result['source']}, Score: {result['score']}, Text: {result['text'][:RESULT_TEXT_LENGTH]}...")
+
+        # Add element details to results
+        detailed_results = []
+        for result in results:
+            element_info = self.get_element_info(result.get('path', ''))
+            detailed_results.append({
+                "source": result['source'],
+                "score": result['score'],
+                "text": result['text'],
+                "element_info": element_info
+            })
+            logging.info(f"Element Info: {element_info}")
+
+        return detailed_results
+
+    def get_element_info(self, path: str) -> Dict:
+        """Retrieve detailed information about an element given its path."""
+        parts = path.split('.')
+        element = self.library_elements
+        for part in parts:
+            if 'members' in element and part in element['members']:
+                element = element['members'][part]
+            else:
+                return {}
+        return element
 
     def load_bert_model(self):
         """Load the BERT model with GPU detection."""
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"Using device: {device}")
+        logging.info(f"Using device: {device}")
         return SentenceTransformer('paraphrase-MiniLM-L6-v2', device=device)
 
     def create_faiss_index(self):
@@ -417,9 +471,9 @@ class LibraryAnalyzer:
                     self.documents = data["documents"]
                     embeddings = np.array(data["embeddings"])
                     self.faiss_index.add(embeddings)
-                    print("Indexed data loaded successfully.")
+                    logging.info("Indexed data loaded successfully.")
         except Exception as e:
-            print(f"Error loading indexed data: {str(e)}")
+            logging.error(f"Error loading indexed data: {str(e)}")
 
     def save_indexed_data(self):
         """Save indexed data to a file."""
@@ -431,6 +485,6 @@ class LibraryAnalyzer:
             }
             with open("indexed_data.json", "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
-            print("Indexed data saved successfully.")
+            logging.info("Indexed data saved successfully.")
         except Exception as e:
-            print(f"Error saving indexed data: {str(e)}")
+            logging.error(f"Error saving indexed data: {str(e)}")

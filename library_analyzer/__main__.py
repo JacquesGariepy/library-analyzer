@@ -1,8 +1,14 @@
 import sys
 import os
+import logging
 from .utils import parse_json_file, extract_function_signatures, load_config
 from .analyzer import LibraryAnalyzer
 from .element import ElementType
+from .logging_config import setup_logging
+
+# Configurer le logging
+setup_logging()
+logger = logging.getLogger(__name__)
 
 def analyze_and_display(library_name: str, save_to_file: bool = True):
     """
@@ -16,7 +22,7 @@ def analyze_and_display(library_name: str, save_to_file: bool = True):
         dict: The analysis results.
     """
     analyzer = LibraryAnalyzer()
-    print(f"\nAnalyzing library: {library_name}")
+    logging.info(f"\nAnalyzing library: {library_name}")
     
     analysis = analyzer.analyze_library(library_name)
     
@@ -28,12 +34,12 @@ def analyze_and_display(library_name: str, save_to_file: bool = True):
         analyzer.save_analysis(analysis, output_file)
     
     if 'error' in analysis:
-        print(f"\nError during analysis: {analysis['error']}")
+        logging.error(f"\nError during analysis: {analysis['error']}")
     else:
-        print("\nAnalysis Summary:")
-        print(f"Version: {analysis['metadata']['version']}")
-        print(f"Location: {analysis['metadata']['file']}")
-        print(f"Number of errors: {len(analysis['metadata']['analysis_errors'])}")
+        logging.info("\nAnalysis Summary:")
+        logging.info(f"Version: {analysis['metadata']['version']}")
+        logging.info(f"Location: {analysis['metadata']['file']}")
+        logging.info(f"Number of errors: {len(analysis['metadata']['analysis_errors'])}")
         
         def count_elements(data, counts=None):
             if counts is None:
@@ -52,21 +58,28 @@ def analyze_and_display(library_name: str, save_to_file: bool = True):
             return counts
         
         element_counts = count_elements(analysis)
-        print("\nElement counts:")
+        logging.info("\nElement counts:")
         for element_type, count in element_counts.items():
             if count > 0:
-                print(f"- {element_type}: {count}")
+                logging.info(f"- {element_type}: {count}")
 
     # Extract text data for indexing
     text_data = analyzer.extract_text_data(analysis)
     # Index the extracted data
     analyzer.index_data(text_data)
+    # Charger la configuration
+    config = load_config()
+    use_bert = config.get("use_bert", True)
+    use_whoosh = config.get("use_whoosh", True)
+    top_k = config.get("top_k", 3)
+
     # Perform a sample search
     search_query = "example search query"
-    search_results = analyzer.search(search_query)
-    print(f"\nSearch results for query '{search_query}':")
+    search_results = analyzer.search(search_query, use_bert=use_bert, use_whoosh=use_whoosh, top_k=top_k)
+    logging.info(f"\nSearch results for query '{search_query}':")
     for result in search_results:
-        print(f"- Path: {result['path']}, Text: {result['text']}")
+        path = result.get('path', 'N/A')
+        logging.info(f"- Path: {path}, Text: {result['text']}")
 
     return analysis
 
@@ -84,7 +97,13 @@ def perform_search(analyzer, analysis, search_query):
     """
     text_data = analyzer.extract_text_data(analysis)
     analyzer.index_data(text_data)
-    search_results = analyzer.search(search_query)
+    # Charger la configuration
+    config = load_config()
+    use_bert = config.get("use_bert", True)
+    use_whoosh = config.get("use_whoosh", True)
+    top_k = config.get("top_k", 3)
+
+    search_results = analyzer.search(search_query, use_bert=use_bert, use_whoosh=use_whoosh, top_k=top_k)
     return search_results
 
 def main():
@@ -110,14 +129,15 @@ def main():
         if len(sys.argv) > 2:
             search_query = sys.argv[2]
             search_results = perform_search(analyzer, analysis, search_query)
-            print(f"\nSearch results for query '{search_query}':")
+            logging.info(f"\nSearch results for query '{search_query}':")
             for result in search_results:
-                print(f"- Path: {result['path']}, Text: {result['text']}")
+                path = result.get('path', 'N/A')
+                logging.info(f"- Path: {path}, Text: {result['text']}")
         else:
-            print("No search query provided, only analysis performed.")
+            logging.info("No search query provided, only analysis performed.")
     else:
-        print("Please provide a library name as argument")
-        print("Example: python -m library_analyzer openai [search_query]")
+        logging.error("Please provide a library name as argument")
+        logging.info("Example: python -m library_analyzer openai [search_query]")
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     main()

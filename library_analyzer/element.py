@@ -4,6 +4,12 @@ import asyncio
 import contextlib
 from typing import Dict
 from dataclasses import is_dataclass, fields
+import logging
+from .logging_config import setup_logging
+
+# Configurer le logging
+setup_logging()
+logger = logging.getLogger(__name__)
 
 class ElementType(Enum):
     CLASS = "class"
@@ -57,5 +63,5 @@ def get_element_type(obj) -> ElementType:
         else:
             return ElementType.VARIABLE
     except Exception as e:
-        self.errors.append(f"Error determining type for {obj}: {str(e)}")
+        logger.error(f"Error determining type for {obj}: {str(e)}")
         return ElementType.VARIABLE

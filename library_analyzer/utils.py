@@ -2,6 +2,12 @@ import inspect
 import json
 import os
 import yaml
+import logging
+from .logging_config import setup_logging
+
+# Configurer le logging
+setup_logging()
+logger = logging.getLogger(__name__)
 
 def explore_module(obj, path="", depth=0, max_depth=5, explored=None):
     """
@@ -84,7 +90,7 @@ def parse_json_file(file_path):
         dict: The contents of the JSON file.
     """
     if not os.path.exists(file_path):
-        print(f"File not found: {file_path}")
+        logger.error(f"File not found: {file_path}")
         return {}
     with open(file_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
@@ -123,4 +129,5 @@ def load_config():
     """
     with open("config.yaml", "r") as file:
         config = yaml.safe_load(file)
+    logger.info("Configuration loaded successfully.")
     return config
