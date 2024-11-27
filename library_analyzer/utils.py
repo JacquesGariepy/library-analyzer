@@ -1,6 +1,7 @@
 import inspect
 import json
 import os
+import yaml
 
 def explore_module(obj, path="", depth=0, max_depth=5, explored=None):
     if explored is None:
@@ -85,3 +86,8 @@ def extract_function_signatures(data):
         extract_from_members(data['members'])
 
     return signatures
+
+def load_config():
+    with open("config.yaml", "r") as file:
+        config = yaml.safe_load(file)
+    return config

@@ -1,44 +1,20 @@
-import inspect
-import types
-from typing import Any, Dict, List, Set, Union, get_type_hints, ClassVar, TypeVar, Generic
-import importlib
-import sys
-from enum import Enum
-import json
-from dataclasses import is_dataclass, fields
-from functools import partial
-import asyncio
-import typing
-import typing_extensions
-import warnings
-import contextlib
 import os
+import json
+import warnings
+import importlib
+import inspect
+import asyncio
+import contextlib
+from datetime import datetime
+from typing import Any, Dict, List
 from whoosh.index import create_in
 from whoosh.fields import Schema, TEXT, ID
 from whoosh.qparser import QueryParser
-from whoosh import index
 from sentence_transformers import SentenceTransformer
 import torch
 import faiss
 import numpy as np
-import yaml
-from datetime import datetime
-
-class ElementType(Enum):
-    CLASS = "class"
-    METHOD = "method"
-    FUNCTION = "function"
-    PROPERTY = "property"
-    MODULE = "module"
-    VARIABLE = "variable"
-    ENUM = "enum"
-    CONSTANT = "constant"
-    DATACLASS = "dataclass"
-    COROUTINE = "coroutine"
-    GENERATOR = "generator"
-    DESCRIPTOR = "descriptor"
-    EXCEPTION = "exception"
-    PROTOCOL = "protocol"
+from .element import ElementType
 
 class LibraryAnalyzer:
     """
@@ -85,18 +61,7 @@ class LibraryAnalyzer:
         """Configure the environment for type management."""
         # Add common types to the global namespace
         self.type_namespace = {
-            'ClassVar': ClassVar,
-            'TypeVar': TypeVar,
-            'Generic': Generic,
             'Any': Any,
-            'Union': Union,
-            'List': List,
-            'Dict': Dict,
-            'Set': Set,
-            'Optional': typing.Optional,
-            # Add other types specific to OpenAI
-            # 'OpenAI': type('OpenAI', (), {}),
-            # 'AsyncOpenAI': type('AsyncOpenAI', (), {}),
         }
 
     def safe_eval(self, type_str: str):
@@ -149,19 +114,6 @@ class LibraryAnalyzer:
         except Exception as e:
             self.errors.append(f"Error getting type info for {typ}: {str(e)}")
             return 'Any'
-
-    def discover_api_endpoints(self, library_name: str) -> List[str]:
-       """Discover API endpoints provided by the library."""
-       try:
-           module = importlib.import_module(library_name)
-           endpoints = []
-           for name, obj in inspect.getmembers(module):
-               if hasattr(obj, 'route'):
-                   endpoints.append(obj.route)
-           return endpoints
-       except Exception as e:
-           self.errors.append(f"Error discovering API endpoints for {library_name}: {str(e)}")
-           return []
 
     def get_signature_info(self, obj) -> Dict:
         """Extract signature information from a function/method."""
@@ -352,14 +304,6 @@ class LibraryAnalyzer:
             # Analyze the main module
             library_info = self.analyze_element(module, library_name, library_name)
             
-            # Discover API endpoints
-            api_endpoints = self.discover_api_endpoints(library_name)
-            library_info['api_endpoints'] = api_endpoints
-            
-            # Discover URLs
-            urls = self.find_urls(library_name)
-            library_info['urls'] = urls
-            
             # Add metadata information
             library_info['metadata'] = {
                 'name': library_name,
@@ -463,16 +407,6 @@ class LibraryAnalyzer:
         # Combine and sort results
         results = sorted(results, key=lambda x: x["score"], reverse=True)
         
-        # Search API endpoints
-        api_endpoints = self.discover_api_endpoints(query)
-        for endpoint in api_endpoints:
-            results.append({
-                "source": "API Endpoint",
-                "path": endpoint,
-                "text": f"API Endpoint: {endpoint}",
-                "score": 1.0  # Assign a high score to API endpoints
-            })
-        
         return results
 
     def load_bert_model(self):
@@ -485,166 +419,3 @@ class LibraryAnalyzer:
         """Create a FAISS index."""
         dimension = 384  # Dimension of the MiniLM embeddings
         return faiss.IndexFlatL2(dimension)
-
-    def find_urls(self, library_name: str) -> List[str]:
-        """Find URLs in the library."""
-        urls = []
-        try:
-            module = importlib.import_module(library_name)
-            visited = set()
-            self._find_urls_in_object(module, urls, visited)
-        except Exception as e:
-            self.errors.append(f"Error finding URLs in {library_name}: {str(e)}")
-        return urls
-
-    def _find_urls_in_object(self, obj, urls: List[str], visited: Set[int]):
-        """Recursively find URLs in an object."""
-        obj_id = id(obj)
-        if obj_id in visited:
-            return
-        visited.add(obj_id)
-
-        if isinstance(obj, str) and obj.startswith("http"):
-            urls.append(obj)
-        elif isinstance(obj, (list, tuple, set)):
-            for item in obj:
-                self._find_urls_in_object(item, urls, visited)
-        elif inspect.ismodule(obj) or inspect.isclass(obj):
-            try:
-                source = inspect.getsource(obj)
-                urls.extend(self.extract_urls_from_source(source))
-            except Exception:
-                pass
-            for name, member in inspect.getmembers(obj):
-                if not name.startswith('_'):
-                    self._find_urls_in_object(member, urls, visited)
-
-    def extract_urls_from_source(self, source: str) -> List[str]:
-        """Extract URLs from the source code."""
-        import re
-        url_pattern = re.compile(r'https?://\S+')
-        return url_pattern.findall(source)
-
-def analyze_and_display(library_name: str, save_to_file: bool = True):
-    """Main function to analyze and display the results."""
-    analyzer = LibraryAnalyzer()
-    print(f"\nAnalyzing library: {library_name}")
-    
-    analysis = analyzer.analyze_library(library_name)
-    
-    if save_to_file:
-        output_dir = "metrics"
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        output_file = os.path.join(output_dir, f"{library_name}_analysis.json")
-        analyzer.save_analysis(analysis, output_file)
-    
-    if 'error' in analysis:
-        print(f"\nError during analysis: {analysis['error']}")
-    else:
-        print("\nAnalysis Summary:")
-        print(f"Version: {analysis['metadata']['version']}")
-        print(f"Location: {analysis['metadata']['file']}")
-        print(f"Number of errors: {len(analysis['metadata']['analysis_errors'])}")
-        
-        def count_elements(data, counts=None):
-            if counts is None:
-                counts = {t.value: 0 for t in ElementType}
-            
-            if isinstance(data, dict):
-                if 'type' in data and isinstance(data['type'], str):
-                    counts[data['type']] = counts.get(data['type'], 0) + 1
-                for value in data.values():
-                    if isinstance(value, (dict, list)):
-                        count_elements(value, counts)
-            elif isinstance(data, list):
-                for item in data:
-                    count_elements(item, counts)
-            
-            return counts
-        
-        element_counts = count_elements(analysis)
-        print("\nElement counts:")
-        for element_type, count in element_counts.items():
-            if count > 0:
-                print(f"- {element_type}: {count}")
-
-    # Extract text data for indexing
-    text_data = analyzer.extract_text_data(analysis)
-    # Index the extracted data
-    analyzer.index_data(text_data)
-    # Perform a sample search
-    search_query = "example search query"
-    search_results = analyzer.search(search_query)
-    print(f"\nSearch results for query '{search_query}':")
-    for result in search_results:
-        print(f"- Path: {result['path']}, Text: {result['text']}")
-
-    return analysis
-
-def explore_module(obj, path="", depth=0, max_depth=5, explored=None):
-    if explored is None:
-        explored = set()
-    
-    # Avoid infinite loops
-    obj_id = id(obj)
-    if obj_id in explored or depth > max_depth:
-        return []
-    
-    explored.add(obj_id)
-    endpoints = []
-    
-    try:
-        # Explore the object's attributes
-        for name in dir(obj):
-            if name.startswith('_'):
-                continue
-                
-            try:
-                attr = getattr(obj, name)
-            except:
-                continue
-                
-            current_path = f"{path}.{name}" if path else name
-            
-            # Check if it's a method that could be an endpoint
-            if inspect.ismethod(attr) or inspect.isfunction(attr):
-                if any(keyword in name.lower() for keyword in ['create', 'list', 'get', 'delete', 'update', 'retrieve']):
-                    sig = inspect.signature(attr)
-                    endpoints.append({
-                        'path': current_path,
-                        'type': 'method',
-                        'parameters': str(sig)
-                    })
-            
-            # Recursively explore classes and modules
-            elif inspect.isclass(attr) or inspect.ismodule(attr):
-                endpoints.extend(explore_module(attr, current_path, depth + 1, max_depth, explored))
-                
-    except Exception as e:
-        pass
-        
-    return endpoints
-
-def parse_json_file(file_path):
-    if not os.path.exists(file_path):
-        print(f"File not found: {file_path}")
-        return {}
-    with open(file_path, 'r', encoding='utf-8') as file:
-        data = json.load(file)
-    return data
-
-def extract_function_signatures(data):
-    signatures = {}
-
-    def extract_from_members(members):
-        for name, info in members.items():
-            if 'parameters' in info:
-                signatures[name] = info['parameters']
-            if 'members' in info:
-                extract_from_members(info['members'])
-
-    if 'members' in data:
-        extract_from_members(data['members'])
-
-    return signatures

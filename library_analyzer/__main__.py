@@ -1,14 +1,8 @@
 import sys
 import os
-import yaml
-from .library_analyzer import ElementType, LibraryAnalyzer
-from .utils import parse_json_file, extract_function_signatures
-
-def load_config(file="config.yaml"):
-    root_dir = os.path.dirname(os.path.dirname(__file__))
-    config_path = os.path.join(root_dir, file)
-    with open(config_path, 'r') as f:
-        return yaml.safe_load(f)
+from .utils import parse_json_file, extract_function_signatures, load_config
+from .analyzer import LibraryAnalyzer
+from .element import ElementType
 
 def analyze_and_display(library_name: str, save_to_file: bool = True):
     analyzer = LibraryAnalyzer()
