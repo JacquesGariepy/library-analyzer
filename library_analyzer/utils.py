@@ -4,10 +4,22 @@ import os
 import yaml
 
 def explore_module(obj, path="", depth=0, max_depth=5, explored=None):
+    """
+    Recursively explore a module or class to find potential API endpoints.
+
+    Args:
+        obj (object): The module or class to explore.
+        path (str): The current path of the object being explored.
+        depth (int): The current depth of the exploration.
+        max_depth (int): The maximum depth to explore.
+        explored (set): A set of already explored object IDs to avoid infinite loops.
+
+    Returns:
+        list: A list of dictionaries containing information about the discovered endpoints.
+    """
     if explored is None:
         explored = set()
     
-    # Avoid infinite loops
     obj_id = id(obj)
     if obj_id in explored or depth > max_depth:
         return []
@@ -16,7 +28,6 @@ def explore_module(obj, path="", depth=0, max_depth=5, explored=None):
     endpoints = []
     
     try:
-        # Explore the object's attributes
         for name in dir(obj):
             if name.startswith('_'):
                 continue
@@ -28,7 +39,6 @@ def explore_module(obj, path="", depth=0, max_depth=5, explored=None):
                 
             current_path = f"{path}.{name}" if path else name
             
-            # Check if it's a method that could be an endpoint
             if inspect.ismethod(attr) or inspect.isfunction(attr):
                 if any(keyword in name.lower() for keyword in ['create', 'list', 'get', 'delete', 'update', 'retrieve']):
                     sig = inspect.signature(attr)
@@ -48,7 +58,6 @@ def explore_module(obj, path="", depth=0, max_depth=5, explored=None):
                         'docstring': doc
                     })
             
-            # Recursively explore classes and modules
             elif inspect.isclass(attr) or inspect.ismodule(attr):
                 class_info = {
                     'path': current_path,
@@ -65,6 +74,15 @@ def explore_module(obj, path="", depth=0, max_depth=5, explored=None):
     return endpoints
 
 def parse_json_file(file_path):
+    """
+    Parse a JSON file and return its contents as a dictionary.
+
+    Args:
+        file_path (str): The path to the JSON file.
+
+    Returns:
+        dict: The contents of the JSON file.
+    """
     if not os.path.exists(file_path):
         print(f"File not found: {file_path}")
         return {}
@@ -73,6 +91,15 @@ def parse_json_file(file_path):
     return data
 
 def extract_function_signatures(data):
+    """
+    Extract function signatures from the analyzed data.
+
+    Args:
+        data (dict): The analyzed data.
+
+    Returns:
+        dict: A dictionary containing function signatures.
+    """
     signatures = {}
 
     def extract_from_members(members):
@@ -88,6 +115,12 @@ def extract_function_signatures(data):
     return signatures
 
 def load_config():
+    """
+    Load the configuration from a YAML file.
+
+    Returns:
+        dict: The configuration data.
+    """
     with open("config.yaml", "r") as file:
         config = yaml.safe_load(file)
     return config

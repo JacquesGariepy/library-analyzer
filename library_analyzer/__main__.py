@@ -5,6 +5,16 @@ from .analyzer import LibraryAnalyzer
 from .element import ElementType
 
 def analyze_and_display(library_name: str, save_to_file: bool = True):
+    """
+    Analyze the specified library and display the results.
+
+    Args:
+        library_name (str): The name of the library to analyze.
+        save_to_file (bool): Whether to save the analysis results to a file.
+
+    Returns:
+        dict: The analysis results.
+    """
     analyzer = LibraryAnalyzer()
     print(f"\nAnalyzing library: {library_name}")
     
@@ -60,7 +70,27 @@ def analyze_and_display(library_name: str, save_to_file: bool = True):
 
     return analysis
 
+def perform_search(analyzer, analysis, search_query):
+    """
+    Perform a search on the analyzed data.
+
+    Args:
+        analyzer (LibraryAnalyzer): The analyzer instance.
+        analysis (dict): The analysis results.
+        search_query (str): The search query.
+
+    Returns:
+        list: The search results.
+    """
+    text_data = analyzer.extract_text_data(analysis)
+    analyzer.index_data(text_data)
+    search_results = analyzer.search(search_query)
+    return search_results
+
 def main():
+    """
+    Main entry point for the script.
+    """
     if len(sys.argv) > 1:
         library_name = sys.argv[1]
         config = load_config()
@@ -79,9 +109,7 @@ def main():
         # Optionally perform semantic search
         if len(sys.argv) > 2:
             search_query = sys.argv[2]
-            text_data = analyzer.extract_text_data(analysis)
-            analyzer.index_data(text_data)
-            search_results = analyzer.search(search_query, use_bert=config["use_bert"], use_whoosh=config["use_whoosh"], top_k=config["top_k"])
+            search_results = perform_search(analyzer, analysis, search_query)
             print(f"\nSearch results for query '{search_query}':")
             for result in search_results:
                 print(f"- Path: {result['path']}, Text: {result['text']}")

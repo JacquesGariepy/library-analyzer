@@ -14,7 +14,7 @@ from sentence_transformers import SentenceTransformer
 import torch
 import faiss
 import numpy as np
-from .element import ElementType
+from .element import ElementType, get_element_type
 
 class LibraryAnalyzer:
     """
@@ -36,7 +36,6 @@ class LibraryAnalyzer:
         get_signature_info(obj) -> Dict: Extracts signature information from a function/method.
         get_class_info(obj) -> Dict: Extracts detailed information from a class.
         analyze_element(obj, name: str, module_name: str) -> Dict: Analyzes an individual library element.
-        get_element_type(obj) -> ElementType: Determines the precise type of an element.
         analyze_library(library_name: str) -> Dict: Performs a complete analysis of a library.
         save_analysis(analysis: Dict, output_file: str): Saves the analysis to a JSON file.
         extract_text_data(analysis: Dict) -> List[Dict]: Extracts relevant text data from the analysis results.
@@ -199,7 +198,7 @@ class LibraryAnalyzer:
             self.explored.add(id(obj))
             current_path = '.'.join(self.current_path + [name])
             
-            element_type = self.get_element_type(obj)
+            element_type = get_element_type(obj)
             element_info = {
                 'type': element_type.value,
                 'name': name,
@@ -247,45 +246,6 @@ class LibraryAnalyzer:
         except Exception as e:
             self.errors.append(f"Error analyzing element {name}: {str(e)}")
             return {}
-
-    def get_element_type(self, obj) -> ElementType:
-        """Determine the precise type of an element."""
-        try:
-            if inspect.ismodule(obj):
-                return ElementType.MODULE
-            elif inspect.isclass(obj):
-                if issubclass(obj, Exception):
-                    return ElementType.EXCEPTION
-                elif is_dataclass(obj):
-                    return ElementType.DATACLASS
-                elif issubclass(obj, Enum):
-                    return ElementType.ENUM
-                elif hasattr(obj, '__protocol__'):
-                    return ElementType.PROTOCOL
-                return ElementType.CLASS
-            elif inspect.ismethod(obj) or inspect.isfunction(obj):
-                if asyncio.iscoroutinefunction(obj):
-                    return ElementType.COROUTINE
-                elif inspect.isgeneratorfunction(obj):
-                    return ElementType.GENERATOR
-                elif inspect.ismethod(obj):
-                    return ElementType.METHOD
-                return ElementType.FUNCTION
-            elif isinstance(obj, property):
-                return ElementType.PROPERTY
-            elif isinstance(obj, (int, float, str, bool)) and \
-                    (isinstance(obj, str) and obj.isupper() or \
-                     not isinstance(obj, str)):
-                return ElementType.CONSTANT
-            elif hasattr(obj, '__get__') and hasattr(obj, '__set__'):
-                return ElementType.DESCRIPTOR
-            elif isinstance(obj, (int, float, str, bool, list, dict, tuple, set)):
-                return ElementType.VARIABLE
-            else:
-                return ElementType.VARIABLE
-        except Exception as e:
-            self.errors.append(f"Error determining type for {obj}: {str(e)}")
-            return ElementType.VARIABLE
 
     def analyze_library(self, library_name: str) -> Dict:
         """Perform a complete analysis of a library."""
