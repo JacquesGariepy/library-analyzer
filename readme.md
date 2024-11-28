@@ -47,7 +47,7 @@ The analysis results include metadata about the library, such as its name, versi
 
 The script now includes semantic search functionality using Whoosh and BERT. This allows you to perform searches on the extracted text data from the analysis results, such as docstrings, function signatures, and class descriptions.
 
-### How to Use Semantic Search
+### How to Use Semantic Search (BERT and whoosh)
 
 1. **Extract Text Data for Indexing**: The script extracts relevant text data from the analysis results, including docstrings, function signatures, and class descriptions.
 2. **Index the Extracted Data**: The extracted text data is indexed using Whoosh and BERT.
